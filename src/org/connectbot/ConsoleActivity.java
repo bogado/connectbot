@@ -397,19 +397,58 @@ public class ConsoleActivity extends Activity {
 				final float disty = e2.getRawY() - e1.getRawY();
 				final int goalwidth = flip.getWidth() / 2;
 
-				// need to slide across half of display to trigger console change
-				// make sure user kept a steady hand horizontally
-				if (Math.abs(disty) < (flip.getHeight() / 4)) {
-					if (distx > goalwidth) {
-						shiftCurrentTerminal(SHIFT_RIGHT);
-						return true;
+				View flip = findCurrentView(R.id.console_flip);
+				// the screen is divided in two,
+				//   the upper region is to change terminals ( region == 0)
+				//   the lower, near the keyboard, is for arrow keys. ( region == 1 )
+				int region = (int)( 2 * e2.getX() / flip.getHeight());
+
+				if (region == 0)
+				{
+					// need to slide across half of display to trigger console change
+					// make sure user kept a steady hand horizontally
+					if (Math.abs(disty) < (flip.getHeight() / 4)) {
+						if (distx > goalwidth) {
+							shiftCurrentTerminal(SHIFT_RIGHT);
+							return true;
+						}
+
+						if (distx < -goalwidth) {
+							shiftCurrentTerminal(SHIFT_LEFT);
+							return true;
+						}
+
+					}
+				} else
+				{
+					TerminalView terminal = (TerminalView)flip;
+					TerminalKeyListener handler = terminal.bridge.getKeyHandler();
+
+					final int tolerance = 3;
+					boolean horizontal = false;
+					if (Math.abs(distx) > tolerance)
+						horizontal = true;
+
+					boolean vertical = false;
+					if (Math.abs(disty) > tolerance)
+						vertical = true;
+
+					if (vertical && distx > 0)
+					{
+						((vt320)terminal.bridge.buffer).keyPressed(vt320.KEY_RIGHT, ' ', 0);
+					} else
+					{
+						((vt320)terminal.bridge.buffer).keyPressed(vt320.KEY_LEFT, ' ', 0);
 					}
 
-					if (distx < -goalwidth) {
-						shiftCurrentTerminal(SHIFT_LEFT);
-						return true;
+					if (horizontal && disty > 0)
+					{
+						((vt320)terminal.bridge.buffer).keyPressed(vt320.KEY_DOWN, ' ', 0);
+					} else
+					{
+						((vt320)terminal.bridge.buffer).keyPressed(vt320.KEY_UP, ' ', 0);
 					}
-
+					return vertical || horizontal;
 				}
 
 				return false;
